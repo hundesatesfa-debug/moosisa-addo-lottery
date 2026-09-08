@@ -5,10 +5,15 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { initiatePayment } from "@/lib/payment";
+import { getServerDict, localizedPath } from "@/i18n/server";
+import type { Dictionary } from "@/i18n/config";
 
-function requireOne(v: FormDataEntryValue | null): string {
+function requireOne(
+  v: FormDataEntryValue | null,
+  errorMsg: string,
+): string {
   const s = typeof v === "string" ? v.trim() : "";
-  if (!s) throw new Error("All fields are required.");
+  if (!s) throw new Error(errorMsg);
   return s;
 }
 
@@ -16,24 +21,25 @@ function requireOne(v: FormDataEntryValue | null): string {
 
 export async function createLotteryAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     throw new Error("FORBIDDEN");
   }
 
-  const title = requireOne(formData.get("title"));
+  const title = requireOne(formData.get("title"), dict.errors.allFieldsRequired);
   const description = (formData.get("description") as string)?.trim() ?? null;
   const ticketPrice = Number(formData.get("ticket_price")) || 300;
-  const registrationStart = requireOne(formData.get("registration_start"));
-  const registrationEnd = requireOne(formData.get("registration_end"));
-  const drawDate = requireOne(formData.get("draw_date"));
+  const registrationStart = requireOne(formData.get("registration_start"), dict.errors.allFieldsRequired);
+  const registrationEnd = requireOne(formData.get("registration_end"), dict.errors.allFieldsRequired);
+  const drawDate = requireOne(formData.get("draw_date"), dict.errors.allFieldsRequired);
 
   if (new Date(registrationEnd) < new Date(registrationStart)) {
-    throw new Error("Registration close must be after the start.");
+    throw new Error(dict.errors.regCloseAfterStart);
   }
   if (new Date(drawDate) < new Date(registrationEnd)) {
-    throw new Error("Draw date must be after registration closes.");
+    throw new Error(dict.errors.drawAfterRegClose);
   }
-  if (ticketPrice <= 0) throw new Error("Ticket price must be positive.");
+  if (ticketPrice <= 0) throw new Error(dict.errors.ticketPricePositive);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -61,22 +67,23 @@ export async function createLotteryAction(formData: FormData) {
     metadata: { title, ticket_price: ticketPrice },
   });
 
-  redirect("/admin/lotteries");
+  redirect(await localizedPath("/admin/lotteries"));
 }
 
 export async function updateLotteryAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     throw new Error("FORBIDDEN");
   }
 
-  const id = requireOne(formData.get("id"));
-  const title = requireOne(formData.get("title"));
+  const id = requireOne(formData.get("id"), dict.errors.allFieldsRequired);
+  const title = requireOne(formData.get("title"), dict.errors.allFieldsRequired);
   const description = (formData.get("description") as string)?.trim() ?? null;
   const ticketPrice = Number(formData.get("ticket_price")) || 300;
-  const registrationStart = requireOne(formData.get("registration_start"));
-  const registrationEnd = requireOne(formData.get("registration_end"));
-  const drawDate = requireOne(formData.get("draw_date"));
+  const registrationStart = requireOne(formData.get("registration_start"), dict.errors.allFieldsRequired);
+  const registrationEnd = requireOne(formData.get("registration_end"), dict.errors.allFieldsRequired);
+  const drawDate = requireOne(formData.get("draw_date"), dict.errors.allFieldsRequired);
 
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -87,7 +94,7 @@ export async function updateLotteryAction(formData: FormData) {
 
   // Cannot edit once drawn.
   if (!existing || existing.status === "completed") {
-    throw new Error("This lottery is completed and can no longer be edited.");
+    throw new Error(dict.errors.lotteryLocked);
   }
 
   const { data, error } = await supabase
@@ -113,15 +120,16 @@ export async function updateLotteryAction(formData: FormData) {
     entityId: data.id,
   });
 
-  redirect("/admin/lotteries");
+  redirect(await localizedPath("/admin/lotteries"));
 }
 
 export async function openLotteryAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     throw new Error("FORBIDDEN");
   }
-  const id = requireOne(formData.get("id"));
+  const id = requireOne(formData.get("id"), dict.errors.allFieldsRequired);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -137,15 +145,16 @@ export async function openLotteryAction(formData: FormData) {
     entityType: "lottery",
     entityId: id,
   });
-  redirect("/admin/lotteries");
+  redirect(await localizedPath("/admin/lotteries"));
 }
 
 export async function closeLotteryAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     throw new Error("FORBIDDEN");
   }
-  const id = requireOne(formData.get("id"));
+  const id = requireOne(formData.get("id"), dict.errors.allFieldsRequired);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -161,7 +170,7 @@ export async function closeLotteryAction(formData: FormData) {
     entityType: "lottery",
     entityId: id,
   });
-  redirect("/admin/lotteries");
+  redirect(await localizedPath("/admin/lotteries"));
 }
 
 // ---------------- Ticket purchase (participant) ----------------
@@ -175,11 +184,12 @@ function generateTicketCode() {
 
 export async function purchaseTicketAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict }: { dict: Dictionary } = await getServerDict();
   if (!profile || profile.role !== "participant") {
     throw new Error("FORBIDDEN");
   }
 
-  const lotteryId = requireOne(formData.get("lottery_id"));
+  const lotteryId = requireOne(formData.get("lottery_id"), dict.errors.allFieldsRequired);
   const supabase = await createClient();
 
   const { data: lottery } = await supabase
@@ -188,9 +198,9 @@ export async function purchaseTicketAction(formData: FormData) {
     .eq("id", lotteryId)
     .single();
 
-  if (!lottery) throw new Error("Lottery not found.");
+  if (!lottery) throw new Error(dict.errors.lotteryNotFound);
   if (lottery.status !== "active" && lottery.status !== "upcoming") {
-    throw new Error("This lottery is not accepting tickets.");
+    throw new Error(dict.errors.notAcceptingTickets);
   }
 
   // DB unique constraint (tickets_one_per_user_per_lottery) prevents dupes.
@@ -208,7 +218,7 @@ export async function purchaseTicketAction(formData: FormData) {
 
   if (tErr) {
     if (tErr.code === "23505") {
-      throw new Error("You already have a ticket for this lottery.");
+      throw new Error(dict.errors.alreadyHaveTicket);
     }
     throw new Error(tErr.message);
   }
@@ -228,11 +238,12 @@ export async function purchaseTicketAction(formData: FormData) {
 
 export async function verifyTicketAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || (profile.role !== "admin" && profile.role !== "super_admin")) {
     throw new Error("FORBIDDEN");
   }
-  const ticketId = requireOne(formData.get("ticket_id"));
-  const status = requireOne(formData.get("status"));
+  const ticketId = requireOne(formData.get("ticket_id"), dict.errors.allFieldsRequired);
+  const status = requireOne(formData.get("status"), dict.errors.allFieldsRequired);
 
   const supabase = await createClient();
   const { data: ticket } = await supabase
@@ -240,7 +251,7 @@ export async function verifyTicketAction(formData: FormData) {
     .select("lottery_id")
     .eq("id", ticketId)
     .single();
-  if (!ticket) throw new Error("Ticket not found.");
+  if (!ticket) throw new Error(dict.errors.ticketNotFound);
 
   const { error } = await supabase
     .from("tickets")
@@ -256,7 +267,7 @@ export async function verifyTicketAction(formData: FormData) {
     metadata: { lottery_id: ticket.lottery_id },
   });
 
-  redirect("/admin/tickets");
+  redirect(await localizedPath("/admin/tickets"));
 }
 
 // ---------------- Secure draw (admin) ----------------

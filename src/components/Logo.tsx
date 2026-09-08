@@ -1,6 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/i18n/client";
+import { localizePath } from "@/i18n/config";
 
 export function Logo({
   className,
@@ -9,8 +13,13 @@ export function Logo({
   className?: string;
   compact?: boolean;
 }) {
+  const { locale } = useLocale();
+
   return (
-    <Link href="/" className={cn("flex items-center gap-2.5", className)}>
+    <Link
+      href={localizePath(locale, "/")}
+      className={cn("flex items-center gap-2.5", className)}
+    >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-600 to-brand-800 shadow-lg shadow-brand-600/30 ring-1 ring-white/20">
         <Trophy className="h-5 w-5 text-gold-400" />
       </span>

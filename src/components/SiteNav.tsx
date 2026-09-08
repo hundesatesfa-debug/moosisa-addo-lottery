@@ -5,6 +5,9 @@ import Link from "next/link";
 import { Menu, X, User } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/Button";
+import { LanguageSwitch } from "@/i18n/language-switcher";
+import { useLocale } from "@/i18n/client";
+import { localizePath } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
 export function SiteNav({
@@ -15,17 +18,18 @@ export function SiteNav({
   role: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const { locale, dict } = useLocale();
 
   const dashboardHref =
     role === "admin" || role === "super_admin"
-      ? "/admin"
-      : "/participant";
+      ? localizePath(locale, "/admin")
+      : localizePath(locale, "/participant");
 
   const links = [
-    { href: "#how-it-works", label: "How It Works" },
-    { href: "#lottery", label: "Current Lottery" },
-    { href: "#winners", label: "Winners" },
-    { href: "#faq", label: "FAQ" },
+    { href: "#how-it-works", label: dict.nav.howItWorks },
+    { href: "#lottery", label: dict.nav.currentLottery },
+    { href: "#winners", label: dict.nav.winners },
+    { href: "#faq", label: dict.nav.faq },
   ];
 
   return (
@@ -50,28 +54,32 @@ export function SiteNav({
             <Link href={dashboardHref}>
               <Button variant="gold">
                 <User className="h-4 w-4" />
-                My Dashboard
+                {dict.nav.myDashboard}
               </Button>
             </Link>
           ) : (
             <>
-              <Link href="/auth/login">
-                <Button variant="ghost">Log in</Button>
+              <Link href={localizePath(locale, "/auth/login")}>
+                <Button variant="ghost">{dict.nav.logIn}</Button>
               </Link>
-              <Link href="/auth/signup">
-                <Button>Get Started</Button>
+              <Link href={localizePath(locale, "/auth/signup")}>
+                <Button>{dict.nav.getStarted}</Button>
               </Link>
             </>
           )}
+          <LanguageSwitch />
         </div>
 
-        <button
-          className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100 md:hidden"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? "Close menu" : "Open menu"}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-1 md:hidden">
+          <LanguageSwitch />
+          <button
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? dict.nav.closeMenu : dict.nav.openMenu}
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </nav>
 
       {/* Mobile menu */}
@@ -96,18 +104,18 @@ export function SiteNav({
             {authed ? (
               <Link href={dashboardHref} onClick={() => setOpen(false)}>
                 <Button className="w-full" variant="gold">
-                  My Dashboard
+                  {dict.nav.myDashboard}
                 </Button>
               </Link>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <Link href="/auth/login" onClick={() => setOpen(false)}>
+                <Link href={localizePath(locale, "/auth/login")} onClick={() => setOpen(false)}>
                   <Button variant="outline" className="w-full">
-                    Log in
+                    {dict.nav.logIn}
                   </Button>
                 </Link>
-                <Link href="/auth/signup" onClick={() => setOpen(false)}>
-                  <Button className="w-full">Sign up</Button>
+                <Link href={localizePath(locale, "/auth/signup")} onClick={() => setOpen(false)}>
+                  <Button className="w-full">{dict.nav.signUp}</Button>
                 </Link>
               </div>
             )}

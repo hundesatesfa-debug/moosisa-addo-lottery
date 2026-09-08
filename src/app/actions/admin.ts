@@ -4,20 +4,22 @@ import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAuditLog } from "@/lib/audit";
+import { getServerDict, localizedPath } from "@/i18n/server";
 import type { UserRole } from "@/lib/types";
 
 // All actions in this file are super_admin only — enforced server-side.
 
 export async function setUserRoleAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || profile.role !== "super_admin") throw new Error("FORBIDDEN");
 
   const userId = String(formData.get("user_id"));
   const role = String(formData.get("role")) as UserRole;
   if (!["participant", "admin", "super_admin"].includes(role)) {
-    throw new Error("Invalid role");
+    throw new Error(dict.errors.invalidRole);
   }
-  if (userId === profile.id) throw new Error("You cannot change your own role.");
+  if (userId === profile.id) throw new Error(dict.errors.cannotChangeOwnRole);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -34,17 +36,18 @@ export async function setUserRoleAction(formData: FormData) {
     metadata: { role },
   });
 
-  revalidatePath("/admin/users");
+  revalidatePath(await localizedPath("/admin/users"));
 }
 
 export async function setUserStatusAction(formData: FormData) {
   const profile = await getProfile();
+  const { dict } = await getServerDict();
   if (!profile || profile.role !== "super_admin") throw new Error("FORBIDDEN");
 
   const userId = String(formData.get("user_id"));
   const status = String(formData.get("status"));
-  if (!["active", "suspended"].includes(status)) throw new Error("Invalid status");
-  if (userId === profile.id) throw new Error("You cannot suspend yourself.");
+  if (!["active", "suspended"].includes(status)) throw new Error(dict.errors.invalidStatus);
+  if (userId === profile.id) throw new Error(dict.errors.cannotSuspendSelf);
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -73,5 +76,5 @@ export async function setUserStatusAction(formData: FormData) {
     }
   }
 
-  revalidatePath("/admin/users");
+  revalidatePath(await localizedPath("/admin/users"));
 }

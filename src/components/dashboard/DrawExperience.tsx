@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Dices, ShieldCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { useLocale } from "@/i18n/client";
+import { localizePath, t } from "@/i18n/config";
 
 interface DrawPageProps {
   lottery: {
@@ -34,6 +36,7 @@ export function DrawExperience({
   initialWinners,
 }: DrawPageProps) {
   const router = useRouter();
+  const { locale, dict } = useLocale();
   const [phase, setPhase] = useState<DrawPhase>({
     step: initialWinners.length ? "done" : "idle",
     winners: initialWinners,
@@ -41,9 +44,9 @@ export function DrawExperience({
   const [pending, startTransition] = useTransition();
 
   const medals: Record<number, { icon: string; label: string }> = {
-    1: { icon: "🥇", label: "First Winner" },
-    2: { icon: "🥈", label: "Second Winner" },
-    3: { icon: "🥉", label: "Third Winner" },
+    1: { icon: "🥇", label: dict.draw.firstWinner },
+    2: { icon: "🥈", label: dict.draw.secondWinner },
+    3: { icon: "🥉", label: dict.draw.thirdWinner },
   };
 
   function runDraw() {
@@ -75,19 +78,18 @@ export function DrawExperience({
         <div className="rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 to-violet-50 p-8 text-center">
           <ShieldCheck className="mx-auto h-12 w-12 text-brand-600" />
           <h2 className="mt-4 text-xl font-extrabold text-slate-900">
-            Ready to draw {lottery.title}?
+            {t(dict.draw.readyTitle, { title: lottery.title })}
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            The draw runs securely on the server and cannot be repeated once
-            completed.
+            {dict.draw.readyText}
           </p>
           <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-800 shadow-sm">
             <Dices className="h-5 w-5 text-brand-600" />
-            {eligible} eligible verified participants
+            {t(dict.draw.eligibleLabel, { eligible: String(eligible) })}
           </div>
           <div className="mt-6">
             <Button size="lg" onClick={() => setPhase({ step: "confirm", winners: [] })}>
-              <Dices className="h-5 w-5" /> Start Secure Draw
+              <Dices className="h-5 w-5" /> {dict.draw.startSecureDraw}
             </Button>
           </div>
         </div>
@@ -99,21 +101,18 @@ export function DrawExperience({
           <div className="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
             <span className="text-4xl">⚠️</span>
             <h3 className="mt-3 text-lg font-extrabold text-slate-900">
-              Start the draw?
+              {dict.draw.startQuestion}
             </h3>
             <p className="mt-2 text-sm text-slate-500">
-              This will randomly select <strong>three winners</strong> from{" "}
-              <strong>{eligible} eligible tickets</strong>. This action is{" "}
-              <strong className="text-red-600">irreversible</strong> — it cannot
-              be repeated or undone after completion.
+              {t(dict.draw.confirmText, { eligible: String(eligible) })}
             </p>
             <div className="mt-6 grid grid-cols-2 gap-2">
               <Button variant="outline" onClick={() => setPhase({ step: "idle", winners: [] })}>
-                Cancel
+                {dict.common.cancel}
               </Button>
               <Button variant="gold" onClick={runDraw} disabled={pending}>
                 {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Yes, Draw Now
+                {dict.draw.yesDrawNow}
               </Button>
             </div>
           </div>
@@ -126,14 +125,13 @@ export function DrawExperience({
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-4 border-gold-400/40 animate-spin">
             <Dices className="h-9 w-9 text-gold-400" />
           </div>
-          <h3 className="mt-6 text-2xl font-extrabold">Selecting winners...</h3>
+          <h3 className="mt-6 text-2xl font-extrabold">{dict.draw.selecting}</h3>
           <p className="mt-2 text-sm text-brand-200">
-            Computing cryptographically secure randomness on the server. This
-            usually takes a few seconds.
+            {dict.draw.computingText}
           </p>
           <div className="mx-auto mt-6 flex max-w-xs items-center gap-2 text-xs text-brand-200">
             <ShieldCheck className="h-4 w-4 shrink-0 text-gold-400" />
-            Selection is happening securely on the server — not in your browser.
+            {dict.draw.secureServerNote}
           </div>
         </div>
       )}
@@ -144,10 +142,10 @@ export function DrawExperience({
           <div className="rounded-2xl bg-gradient-to-r from-gold-400 via-gold-500 to-gold-400 p-8 text-center">
             <span className="text-5xl">🏆</span>
             <h2 className="mt-3 text-2xl font-extrabold text-slate-900">
-              The Winners Have Been Drawn!
+              {dict.draw.doneTitle}
             </h2>
             <p className="mt-1 text-sm font-medium text-slate-800">
-              Congratulations to the three lucky winners of {lottery.title}.
+              {t(dict.draw.doneSubtitle, { title: lottery.title })}
             </p>
           </div>
 
@@ -172,7 +170,7 @@ export function DrawExperience({
                     {m.label}
                   </p>
                   <p className="mt-1 text-lg font-extrabold text-slate-900">
-                    {w.full_name ?? "Anonymous"}
+                    {w.full_name ?? dict.common.anonymous}
                   </p>
                   <p className="mt-1 font-mono text-xs text-slate-400">
                     {w.ticket_code}
@@ -183,8 +181,8 @@ export function DrawExperience({
           </div>
 
           <div className="text-center">
-            <Button onClick={() => router.push("/admin/winners")}>
-              View All Winners
+            <Button onClick={() => router.push(localizePath(locale, "/admin/winners"))}>
+              {dict.draw.viewAllWinners}
             </Button>
           </div>
         </div>
@@ -195,12 +193,12 @@ export function DrawExperience({
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
           <span className="text-4xl">😕</span>
           <h3 className="mt-3 text-lg font-bold text-slate-900">
-            The draw could not be completed
+            {dict.draw.errorTitle}
           </h3>
           <p className="mt-2 text-sm text-red-600">{phase.error}</p>
           <div className="mt-5">
             <Button variant="outline" onClick={() => setPhase({ step: "idle", winners: [] })}>
-              Go Back
+              {dict.draw.goBack}
             </Button>
           </div>
         </div>

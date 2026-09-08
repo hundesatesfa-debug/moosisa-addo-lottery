@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "@/i18n/client";
 
 export function Countdown({ target }: { target: string }) {
   const targetTime = new Date(target).getTime();
+  const { dict } = useLocale();
 
   function calc() {
     const diff = Math.max(0, targetTime - Date.now());
@@ -23,10 +25,10 @@ export function Countdown({ target }: { target: string }) {
   }, [targetTime]);
 
   const cells = [
-    { label: "Days", value: time.days },
-    { label: "Hours", value: time.hours },
-    { label: "Minutes", value: time.mins },
-    { label: "Seconds", value: time.secs },
+    { label: dict.countdown.days, value: time.days },
+    { label: dict.countdown.hours, value: time.hours },
+    { label: dict.countdown.minutes, value: time.mins },
+    { label: dict.countdown.seconds, value: time.secs },
   ];
 
   return (

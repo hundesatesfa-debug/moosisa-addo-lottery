@@ -1,5 +1,8 @@
+"use client";
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/i18n/client";
 
 type BadgeVariant = "default" | "success" | "warning" | "danger" | "info" | "gold";
 
@@ -31,12 +34,13 @@ export function Badge({
 
 // Lottery status badge helper
 export function LotteryStatusBadge({ status }: { status: string }) {
+  const { dict } = useLocale();
   const map: Record<string, { label: string; variant: BadgeVariant }> = {
-    upcoming: { label: "Upcoming", variant: "info" },
-    active: { label: "Registration Open", variant: "success" },
-    closed: { label: "Registration Closed", variant: "warning" },
-    drawing: { label: "Drawing...", variant: "gold" },
-    completed: { label: "Completed", variant: "default" },
+    upcoming: { label: dict.badges.upcoming, variant: "info" },
+    active: { label: dict.badges.registrationOpen, variant: "success" },
+    closed: { label: dict.badges.registrationClosed, variant: "warning" },
+    drawing: { label: dict.badges.drawing, variant: "gold" },
+    completed: { label: dict.badges.completed, variant: "default" },
   };
   const cfg = map[status] ?? { label: status, variant: "default" as BadgeVariant };
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
@@ -44,10 +48,11 @@ export function LotteryStatusBadge({ status }: { status: string }) {
 
 // Payment status badge helper
 export function PaymentStatusBadge({ status }: { status: string }) {
+  const { dict } = useLocale();
   const map: Record<string, { label: string; variant: BadgeVariant }> = {
-    pending: { label: "Pending", variant: "warning" },
-    verified: { label: "Verified", variant: "success" },
-    rejected: { label: "Rejected", variant: "danger" },
+    pending: { label: dict.badges.pending, variant: "warning" },
+    verified: { label: dict.badges.verified, variant: "success" },
+    rejected: { label: dict.badges.rejected, variant: "danger" },
   };
   const cfg = map[status] ?? { label: status, variant: "default" as BadgeVariant };
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;

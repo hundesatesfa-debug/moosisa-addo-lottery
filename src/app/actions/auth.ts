@@ -3,46 +3,44 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAuditLog } from "@/lib/audit";
+import { getServerDict, localizedPath } from "@/i18n/server";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^(\+?[0-9 ]{9,15})$/;
 
 export interface AuthState {
   error?: string;
-}
-
-function validateSignup(data: FormData) {
-  const fullName = (data.get("full_name") as string)?.trim();
-  const phone = (data.get("phone") as string)?.trim();
-  const email = (data.get("email") as string)?.trim();
-  const password = (data.get("password") as string) ?? "";
-
-  if (!fullName || fullName.length < 2) return { error: "Please enter your full name." };
-  if (!phone || !PHONE_RE.test(phone)) return { error: "Please enter a valid phone number." };
-  if (!email || !EMAIL_RE.test(email)) return { error: "Please enter a valid email address." };
-  if (password.length < 8) return { error: "Password must be at least 8 characters." };
-  return { fullName, phone, email, password };
+  variant?: "error" | "info";
 }
 
 export async function signupAction(_: AuthState, formData: FormData): Promise<AuthState> {
-  const v = validateSignup(formData);
-  if ("error" in v) return v;
+  const { dict } = await getServerDict();
+
+  const fullName = (formData.get("full_name") as string)?.trim();
+  const phone = (formData.get("phone") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim();
+  const password = (formData.get("password") as string) ?? "";
+
+  if (!fullName || fullName.length < 2) return { error: dict.authErrors.signupInvalidName };
+  if (!phone || !PHONE_RE.test(phone)) return { error: dict.authErrors.signupInvalidPhone };
+  if (!email || !EMAIL_RE.test(email)) return { error: dict.authErrors.signupInvalidEmail };
+  if (password.length < 8) return { error: dict.authErrors.signupShortPassword };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
-    email: v.email,
-    password: v.password,
+    email,
+    password,
     options: {
       data: {
-        full_name: v.fullName,
-        phone: v.phone,
+        full_name: fullName,
+        phone,
         role: "participant",
       },
     },
   });
 
   if (error) {
-    return { error: "error" in error && error.message ? error.message : "Sign up failed." };
+    return { error: error.message || dict.authErrors.signupFailed };
   }
 
   // Only logged-in users can see the dashboard; if email confirmation is
@@ -54,17 +52,19 @@ export async function signupAction(_: AuthState, formData: FormData): Promise<Au
       entityType: "user",
       entityId: data.user?.id,
     });
-    redirect("/participant");
+    redirect(await localizedPath("/participant"));
   }
 
-  return { error: "Check your email to confirm your account, then log in." };
+  return { error: dict.authErrors.checkEmail, variant: "info" };
 }
 
 export async function loginAction(_: AuthState, formData: FormData): Promise<AuthState> {
+  const { dict } = await getServerDict();
+
   const email = (formData.get("email") as string)?.trim();
   const password = (formData.get("password") as string) ?? "";
 
-  if (!email || !password) return { error: "Email and password are required." };
+  if (!email || !password) return { error: dict.authErrors.requiredCredentials };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -72,7 +72,7 @@ export async function loginAction(_: AuthState, formData: FormData): Promise<Aut
     password,
   });
 
-  if (error) return { error: "Invalid email or password." };
+  if (error) return { error: dict.authErrors.invalidCredentials };
 
   // Server-side role check; never trust the client.
   const { data: profile } = await supabase
@@ -85,38 +85,45 @@ export async function loginAction(_: AuthState, formData: FormData): Promise<Aut
 
   if (profile?.account_status === "suspended") {
     await supabase.auth.signOut();
-    return { error: "This account has been suspended. Contact support." };
+    return { error: dict.authErrors.suspended };
   }
 
-  redirect(role === "admin" || role === "super_admin" ? "/admin" : "/participant");
+  redirect(
+    role === "admin" || role === "super_admin"
+      ? await localizedPath("/admin")
+      : await localizedPath("/participant"),
+  );
 }
 
 export async function logoutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/");
+  redirect(await localizedPath("/"));
 }
 
 export async function resetPasswordAction(_: AuthState, formData: FormData): Promise<AuthState> {
+  const { dict } = await getServerDict();
+
   const email = (formData.get("email") as string)?.trim();
-  if (!email || !EMAIL_RE.test(email)) return { error: "Enter a valid email address." };
+  if (!email || !EMAIL_RE.test(email)) return { error: dict.authErrors.invalidEmail };
 
   const supabase = await createClient();
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/auth/update-password`,
+    redirectTo: `${base}/auth/update-password`,
   });
   if (error) return { error: error.message };
-  return {
-    error: "If an account exists for that email, a reset link has been sent.",
-  };
+  return { error: dict.authErrors.resetLinkSent, variant: "info" };
 }
 
 export async function updatePasswordAction(_: AuthState, formData: FormData): Promise<AuthState> {
+  const { dict } = await getServerDict();
+
   const password = (formData.get("password") as string) ?? "";
-  if (password.length < 8) return { error: "Password must be at least 8 characters." };
+  if (password.length < 8) return { error: dict.authErrors.signupShortPassword };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: error.message };
-  redirect("/participant");
+  redirect(await localizedPath("/participant"));
 }
