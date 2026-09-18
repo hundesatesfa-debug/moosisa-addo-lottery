@@ -247,6 +247,18 @@ export const om: Dictionary = {
     confirm: "Mirkaneeffadhu",
     successTitle: "Tikiitii Bitameera",
     yourCode: "Koodii kee {code}",
+    yourNumber: "Lakkoofsa kee {number}",
+    pickNumberTitle: "Lakkoofsa tikiitii kee filadhu",
+    pickNumberHint:
+      "Lakkoofsaan 1 irraa {max}tti jiru filadhu. Lakkoofsaan tokkoon tokko yeroo tokko qofa bitamuu danda'a.",
+    yourNumber: "Lakkoofsiin kee {number}",
+    pickNumberTitle: "Lakkoofsaa tikiitii kee filadhu",
+    pickNumberHint:
+      "Lakkoofsa 1 irraa {max}tti filadhu. Lakkoofsaan hundaa yeroo tokko qofa bituu danda'ama.",
+    numbersLeft: "{count} lakkoofsota bituu danda'an hafe",
+    yourNumber: "Lakkoofsiin kee {number}",
+    pickNumberTitle: "Lakkoofsaadhaan mirkaneeffadhu",
+    pickNumberHint: "Lakkoofsa tikiitii kee hin filadhuu? Lakkoofsniin tikiitii tokkoon tokkoon yeroo tokko qofa bitamuu qaba.",
     failedTitle: "Bituu milkaa'e",
   },
 
@@ -283,6 +295,7 @@ export const om: Dictionary = {
     description: "Ibsa",
     descriptionPlaceholder: "Riggaa ibsi",
     ticketPrice: "Gatii Tikiitii (ETB)",
+    maxTicketNumber: "Lakkoofsa Tikiitii Ol-Aanaa (1–N)",
     regStart: "Jalqaba Galmee",
     regClose: "Cufama Galmee",
     drawDate: "Guyyaa Filannoo",
@@ -363,6 +376,12 @@ export const om: Dictionary = {
     regCloseAfterStart: "Cufamni galmee jalqaba booda ta'uu qaba.",
     drawAfterRegClose: "Guyyaan filannoo cufama galmee booda ta'uu qaba.",
     ticketPricePositive: "Gatii tikiitii poozitaayivii ta'uu qaba.",
+    lotteryMaxNumberInvalid:
+      "Lakkoofsaan tikiitii ol-aanaa guddaan intijeerii poozitaayivii ta'uu qaba.",
+    ticketNumberInvalid:
+      "Lakkoofsiin tikiitii 1 fi ol-aanaa hayyamame gidduu ta'uu qaba.",
+    numberTaken:
+      "Lakkoofsiin tikiitii kun duraan fudhatameera. Kan biraa filadhu.",
     lotteryLocked:
       "Lootariin kun xumurameera, amma hin sirreessamuu danda'u.",
     lotteryNotFound: "Lootariin hin argamne.",

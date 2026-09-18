@@ -66,6 +66,10 @@ export default async function AdminLotteriesPage({ params }: Props) {
                 <Label htmlFor="ticket_price">{dict.admin.ticketPrice}</Label>
                 <Input id="ticket_price" name="ticket_price" type="number" defaultValue={300} min={1} />
               </div>
+              <div>
+                <Label htmlFor="max_ticket_number">{dict.admin.maxTicketNumber}</Label>
+                <Input id="max_ticket_number" name="max_ticket_number" type="number" defaultValue={300} min={1} />
+              </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="registration_start">{dict.admin.regStart}</Label>

@@ -26,10 +26,12 @@ export interface Lottery {
   title: string;
   description: string | null;
   ticket_price: number;
+  max_ticket_number: number;
   registration_start: string;
   registration_end: string;
   draw_date: string;
   status: LotteryStatus;
+  max_ticket_number: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -38,6 +40,7 @@ export interface Lottery {
 export interface Ticket {
   id: string;
   ticket_code: string;
+  chosen_number: number | null;
   user_id: string;
   lottery_id: string;
   price_paid: number;

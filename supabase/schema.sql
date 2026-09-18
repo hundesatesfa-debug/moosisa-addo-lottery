@@ -149,6 +149,10 @@ create table public.lotteries (
   title text not null,
   description text,
   ticket_price numeric(12, 2) not null default 300 check (ticket_price > 0),
+  -- Participant-picked number range: tickets are numbered 1..max_ticket_number.
+  -- Participants each choose a free number; the draw matches winners to holders
+  -- of the drawn numbers. Set once by the admin when creating the lottery.
+  max_ticket_number integer not null default 300 check (max_ticket_number >= 1),
   registration_start timestamptz not null,
   registration_end timestamptz not null,
   draw_date timestamptz not null,
@@ -186,6 +190,10 @@ create policy "lotteries_delete_admin" on public.lotteries
 create table public.tickets (
   id uuid primary key default gen_random_uuid(),
   ticket_code text not null unique,
+  -- The number the participant picked (1..lotteries.max_ticket_number).
+  -- NULL for legacy tickets that predate number picking; each number may be
+  -- chosen by at most one participant per lottery (partial unique below).
+  chosen_number integer,
   user_id uuid not null references public.profiles (id) on delete cascade,
   lottery_id uuid not null references public.lotteries (id) on delete cascade,
   price_paid numeric(12, 2) not null default 300 check (price_paid > 0),
@@ -194,6 +202,12 @@ create table public.tickets (
   updated_at timestamptz not null default now(),
   constraint tickets_one_per_user_per_lottery unique (user_id, lottery_id)
 );
+
+-- A ticket number can be held by at most one participant per lottery;
+-- NULLs (legacy code-only tickets) are never conflicts.
+create unique index tickets_one_chosen_per_lottery
+  on public.tickets (lottery_id, chosen_number)
+  where chosen_number is not null;
 
 alter table public.tickets enable row level security;
 

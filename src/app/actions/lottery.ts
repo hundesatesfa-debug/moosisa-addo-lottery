@@ -29,6 +29,7 @@ export async function createLotteryAction(formData: FormData) {
   const title = requireOne(formData.get("title"), dict.errors.allFieldsRequired);
   const description = (formData.get("description") as string)?.trim() ?? null;
   const ticketPrice = Number(formData.get("ticket_price")) || 300;
+  const maxTicketNumber = Number(formData.get("max_ticket_number")) || 300;
   const registrationStart = requireOne(formData.get("registration_start"), dict.errors.allFieldsRequired);
   const registrationEnd = requireOne(formData.get("registration_end"), dict.errors.allFieldsRequired);
   const drawDate = requireOne(formData.get("draw_date"), dict.errors.allFieldsRequired);
@@ -40,6 +41,9 @@ export async function createLotteryAction(formData: FormData) {
     throw new Error(dict.errors.drawAfterRegClose);
   }
   if (ticketPrice <= 0) throw new Error(dict.errors.ticketPricePositive);
+  if (!Number.isInteger(maxTicketNumber) || maxTicketNumber < 1) {
+    throw new Error(dict.errors.ticketNumberInvalid);
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -48,6 +52,7 @@ export async function createLotteryAction(formData: FormData) {
       title,
       description,
       ticket_price: ticketPrice,
+      max_ticket_number: maxTicketNumber,
       registration_start: registrationStart,
       registration_end: registrationEnd,
       draw_date: drawDate,
@@ -81,6 +86,7 @@ export async function updateLotteryAction(formData: FormData) {
   const title = requireOne(formData.get("title"), dict.errors.allFieldsRequired);
   const description = (formData.get("description") as string)?.trim() ?? null;
   const ticketPrice = Number(formData.get("ticket_price")) || 300;
+  const maxTicketNumber = Number(formData.get("max_ticket_number")) || 300;
   const registrationStart = requireOne(formData.get("registration_start"), dict.errors.allFieldsRequired);
   const registrationEnd = requireOne(formData.get("registration_end"), dict.errors.allFieldsRequired);
   const drawDate = requireOne(formData.get("draw_date"), dict.errors.allFieldsRequired);
@@ -96,6 +102,9 @@ export async function updateLotteryAction(formData: FormData) {
   if (!existing || existing.status === "completed") {
     throw new Error(dict.errors.lotteryLocked);
   }
+  if (!Number.isInteger(maxTicketNumber) || maxTicketNumber < 1) {
+    throw new Error(dict.errors.lotteryMaxNumberInvalid);
+  }
 
   const { data, error } = await supabase
     .from("lotteries")
@@ -103,6 +112,7 @@ export async function updateLotteryAction(formData: FormData) {
       title,
       description,
       ticket_price: ticketPrice,
+      max_ticket_number: maxTicketNumber,
       registration_start: registrationStart,
       registration_end: registrationEnd,
       draw_date: drawDate,
@@ -192,6 +202,11 @@ export async function purchaseTicketAction(formData: FormData) {
   const lotteryId = requireOne(formData.get("lottery_id"), dict.errors.allFieldsRequired);
   const supabase = await createClient();
 
+  const chosenNumberRaw = formData.get("chosen_number");
+  const chosenNumber = chosenNumberRaw == null || chosenNumberRaw === ""
+    ? null
+    : Number(chosenNumberRaw);
+
   const { data: lottery } = await supabase
     .from("lotteries")
     .select("*")
@@ -203,6 +218,14 @@ export async function purchaseTicketAction(formData: FormData) {
     throw new Error(dict.errors.notAcceptingTickets);
   }
 
+  // Validate the chosen number (1..max) before inserting.
+  if (chosenNumber != null) {
+    const max = Number(lottery.max_ticket_number) || 300;
+    if (!Number.isInteger(chosenNumber) || chosenNumber < 1 || chosenNumber > max) {
+      throw new Error(dict.errors.ticketNumberInvalid);
+    }
+  }
+
   // DB unique constraint (tickets_one_per_user_per_lottery) prevents dupes.
   const { data: ticket, error: tErr } = await supabase
     .from("tickets")
@@ -210,6 +233,7 @@ export async function purchaseTicketAction(formData: FormData) {
       ticket_code: generateTicketCode(),
       user_id: profile.id,
       lottery_id: lotteryId,
+      chosen_number: chosenNumber,
       price_paid: lottery.ticket_price,
       payment_status: "pending",
     })
@@ -218,6 +242,13 @@ export async function purchaseTicketAction(formData: FormData) {
 
   if (tErr) {
     if (tErr.code === "23505") {
+      // Two different unique constraints can raise 23505 here:
+      //   tickets_one_chosen_per_lottery -> that number is already taken
+      //   tickets_one_per_user_per_lottery -> user already has a ticket
+      const msg = `${tErr.details ?? ""} ${tErr.message ?? ""}`;
+      if (msg.includes("tickets_one_chosen_per_lottery")) {
+        throw new Error(dict.errors.numberTaken);
+      }
       throw new Error(dict.errors.alreadyHaveTicket);
     }
     throw new Error(tErr.message);
